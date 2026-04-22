@@ -1,13 +1,16 @@
 import boto3
 import json
-
+import os
 
 def scan_cloud_config():
 
     alerts = []
 
-    # load AWS credentials
-    with open("config.json") as f:
+    # 🔥 FIXED PATH FOR RENDER
+    base_dir = os.path.dirname(__file__)
+    config_path = os.path.join(base_dir, "config.json")
+
+    with open(config_path) as f:
         config = json.load(f)
 
     access_key = config["aws_access_key"]
