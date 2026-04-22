@@ -6,23 +6,27 @@ from database import create_tables, connect_db
 from scanner import scan_cloud_config
 
 import os
+import json
 
+# ---------------- BASE DIR ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# ---------------- APP SETUP ----------------
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 CORS(app, supports_credentials=True)
 
 app.secret_key = "armoredsec_secret_key"
 
+# 🔥 IMPORTANT: CREATE TABLES FOR RENDER
+create_tables()
+
 
 # ---------------- RISK SCORE FUNCTION ----------------
-
 def calculate_risk(alerts):
 
     risk_points = 0
 
     for alert in alerts:
-
         severity = alert[3]
 
         if severity == "Critical":
@@ -40,21 +44,18 @@ def calculate_risk(alerts):
 
 
 # ---------------- HOME ROUTE ----------------
-
 @app.route("/")
 def home():
     return redirect("/loginpage")
 
 
 # ---------------- LOGIN PAGE ----------------
-
 @app.route("/loginpage")
 def login_page():
     return render_template("login.html")
 
 
 # ---------------- DASHBOARD PAGE ----------------
-
 @app.route("/dashboard")
 def dashboard_page():
 
@@ -65,7 +66,6 @@ def dashboard_page():
 
 
 # ---------------- SIGNUP API ----------------
-
 @app.route("/signup", methods=["POST"])
 def signup():
 
@@ -97,7 +97,6 @@ def signup():
 
 
 # ---------------- LOGIN API ----------------
-
 @app.route("/login", methods=["POST"])
 def login():
 
@@ -124,17 +123,14 @@ def login():
 
 
 # ---------------- LOGOUT ----------------
-
 @app.route("/logout")
 def logout():
 
     session.pop("user", None)
-
     return jsonify({"message": "Logged Out Successfully"})
 
 
 # ---------------- SECURITY SCAN ----------------
-
 @app.route("/scan")
 def run_scan():
 
@@ -150,7 +146,6 @@ def run_scan():
 
     for issue, severity, solution in alerts:
 
-        # prevent duplicate alerts
         cursor.execute(
             "SELECT * FROM alerts WHERE username=? AND issue=?",
             (username, issue)
@@ -159,7 +154,6 @@ def run_scan():
         existing = cursor.fetchone()
 
         if not existing:
-
             cursor.execute(
                 "INSERT INTO alerts(username,issue,severity,solution,timestamp) VALUES (?,?,?,?,?)",
                 (
@@ -178,7 +172,6 @@ def run_scan():
 
 
 # ---------------- ALERTS API ----------------
-
 @app.route("/alerts")
 def get_alerts():
 
@@ -222,34 +215,32 @@ def get_alerts():
 
 
 # ---------------- FIX PUBLIC S3 BUCKET ----------------
-
 @app.route("/fix_s3", methods=["POST"])
 def fix_s3():
 
     if "user" not in session:
         return jsonify({"message": "Unauthorized"}), 401
 
-    import json
-    import boto3
+    config_path = os.path.join(BASE_DIR, "config.json")
 
-    with open("config.json") as f:
+    if not os.path.exists(config_path):
+        return jsonify({"message": "Cloud not connected"}), 400
+
+    with open(config_path) as f:
         config = json.load(f)
 
-    access_key = config["aws_access_key"]
-    secret_key = config["aws_secret_key"]
-    region = config["region"]
-
-    bucket_name = request.json["bucket"]
+    import boto3
 
     s3 = boto3.client(
         "s3",
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        region_name=region
+        aws_access_key_id=config["aws_access_key"],
+        aws_secret_access_key=config["aws_secret_key"],
+        region_name=config["region"]
     )
 
-    try:
+    bucket_name = request.json["bucket"]
 
+    try:
         s3.delete_bucket_policy(Bucket=bucket_name)
 
         return jsonify({
@@ -257,7 +248,6 @@ def fix_s3():
         })
 
     except Exception as e:
-
         return jsonify({
             "message": "Fix failed",
             "error": str(e)
@@ -265,7 +255,6 @@ def fix_s3():
 
 
 # ---------------- CONNECT CLOUD PAGE ----------------
-
 @app.route("/connectcloud")
 def connect_cloud():
 
@@ -276,21 +265,19 @@ def connect_cloud():
 
 
 # ---------------- SAVE CLOUD CONFIG ----------------
-
 @app.route("/save_cloud", methods=["POST"])
 def save_cloud():
 
     data = request.json
 
-    import json
-    with open("config.json", "w") as f:
+    config_path = os.path.join(BASE_DIR, "config.json")
+
+    with open(config_path, "w") as f:
         json.dump(data, f)
 
     return jsonify({"message": "Cloud Connected Successfully"})
 
 
 # ---------------- START APP ----------------
-
 if __name__ == "__main__":
-    create_tables()
     app.run(host="0.0.0.0", port=5000)
