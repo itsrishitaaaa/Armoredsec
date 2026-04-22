@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>ARMOR(E)DSEC Login</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Segoe UI;
+background:linear-gradient(135deg,#0f172a,#1e3a8a);
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+}
+
+/* MAIN BOX */
+
+.container{
+display:flex;
+width:900px;
+height:450px;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 10px 40px rgba(0,0,0,0.5);
+}
+
+/* LEFT SIDE */
+
+.left{
+flex:1;
+background:linear-gradient(135deg,#4f46e5,#9333ea);
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+padding:40px;
+text-align:center;
+}
+
+.left h1{
+font-size:34px;
+margin-bottom:10px;
+}
+
+.left p{
+opacity:0.9;
+}
+
+/* RIGHT SIDE */
+
+.right{
+flex:1;
+background:white;
+color:#111;
+display:flex;
+flex-direction:column;
+justify-content:center;
+padding:40px;
+}
+
+.right h2{
+text-align:center;
+margin-bottom:25px;
+}
+
+/* INPUTS */
+
+input{
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:15px;
+}
+
+/* BUTTONS */
+
+button{
+width:100%;
+padding:12px;
+border:none;
+border-radius:8px;
+font-size:16px;
+cursor:pointer;
+margin-bottom:10px;
+font-weight:bold;
+}
+
+.login{
+background:#2563eb;
+color:white;
+}
+
+.signup{
+background:#e5e7eb;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+<div class="left">
+
+<h1>ARMOR(E)DSEC</h1>
+
+<p>Intelligent Cloud Security Monitoring Platform</p>
+
+<p>Detect • Analyze • Protect</p>
+
+</div>
+
+
+<div class="right">
+
+<h2>Login to Dashboard</h2>
+
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+
+<button class="login" onclick="loginUser()">Login</button>
+<button class="signup" onclick="signupUser()">Signup</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+async function loginUser(){
+
+const username=document.getElementById("username").value
+const password=document.getElementById("password").value
+
+const response=await fetch("/login",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+credentials:"include",
+body:JSON.stringify({
+username:username,
+password:password
+})
+})
+
+const data=await response.json()
+
+if(data.message==="Login Successful"){
+location.href="/dashboard"
+}
+else{
+alert(data.message)
+}
+
+}
+
+
+
+async function signupUser(){
+
+const username=document.getElementById("username").value
+const password=document.getElementById("password").value
+
+const response=await fetch("/signup",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+username:username,
+password:password
+})
+})
+
+const data=await response.json()
+
+alert(data.message)
+
+}
+
+</script>
+
+</body>
+</html>

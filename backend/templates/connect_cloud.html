@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Connect Cloud</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#eef2f7;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+
+}
+
+.box {
+    background:white;
+    padding:30px;
+    border-radius:12px;
+    width:400px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+input,select {
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button {
+    padding:10px;
+    width:100%;
+    background:#007bff;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h2>Connect Cloud Environment</h2>
+
+<select id="provider">
+<option>AWS</option>
+<option>Azure</option>
+<option>GCP</option>
+</select>
+
+<input id="region" placeholder="Region (eg: us-east-1)">
+<input id="access" placeholder="Access Key (optional)">
+<input id="bucket" placeholder="Bucket/Project Name">
+
+<button onclick="connectCloud()">Connect</button>
+
+</div>
+
+<script>
+function connectCloud(){
+
+fetch("/save_cloud",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+provider:provider.value,
+region:region.value,
+access:access.value,
+bucket:bucket.value
+})
+})
+.then(r=>r.json())
+.then(d=>{
+alert(d.message);
+window.location.href="/dashboard";
+});
+
+}
+</script>
+
+</body>
+</html>
