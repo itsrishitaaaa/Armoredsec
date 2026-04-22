@@ -1,21 +1,18 @@
 import boto3
-import json
 import os
+
 
 def scan_cloud_config():
 
     alerts = []
 
-    # 🔥 FIXED PATH FOR RENDER
-    base_dir = os.path.dirname(__file__)
-    config_path = os.path.join(base_dir, "config.json")
+    # 🔥 GET FROM ENV VARIABLES (FINAL FIX)
+    access_key = os.getenv("AWS_ACCESS_KEY")
+    secret_key = os.getenv("AWS_SECRET_KEY")
+    region = os.getenv("AWS_REGION")
 
-    with open(config_path) as f:
-        config = json.load(f)
-
-    access_key = config["aws_access_key"]
-    secret_key = config["aws_secret_key"]
-    region = config["region"]
+    if not access_key or not secret_key or not region:
+        raise Exception("AWS credentials not set in environment variables")
 
     # AWS clients
     s3 = boto3.client(
@@ -37,7 +34,6 @@ def scan_cloud_config():
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key
     )
-
     # ---------------- S3 BUCKET CHECKS ----------------
 
     try:
