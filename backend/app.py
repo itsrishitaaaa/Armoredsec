@@ -16,7 +16,7 @@ app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 
 app.secret_key = "armoredsec_secret_key"
 
-# 🔥 VERY IMPORTANT FOR RENDER SESSION FIX
+# 🔥 SESSION FIX FOR RENDER
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config["SESSION_COOKIE_SECURE"] = True
 
@@ -49,13 +49,13 @@ def signup():
         data = request.get_json()
 
         if not data:
-            return jsonify({"message": "No data received"}), 400
+            return jsonify({"success": False, "message": "No data received"}), 400
 
         username = data.get("username")
         password = data.get("password")
 
         if not username or not password:
-            return jsonify({"message": "Missing fields"}), 400
+            return jsonify({"success": False, "message": "Missing fields"}), 400
 
         conn = connect_db()
         cursor = conn.cursor()
@@ -63,7 +63,7 @@ def signup():
         cursor.execute("SELECT * FROM users WHERE username=?", (username,))
         if cursor.fetchone():
             conn.close()
-            return jsonify({"message": "Username already exists"})
+            return jsonify({"success": False, "message": "Username already exists"})
 
         hashed = generate_password_hash(password)
 
@@ -75,10 +75,10 @@ def signup():
         conn.commit()
         conn.close()
 
-        return jsonify({"message": "Signup successful"})
+        return jsonify({"success": True, "message": "Signup successful"})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
@@ -87,7 +87,7 @@ def login():
         data = request.get_json()
 
         if not data:
-            return jsonify({"message": "No data received"}), 400
+            return jsonify({"success": False, "message": "No data received"}), 400
 
         username = data.get("username")
         password = data.get("password")
@@ -102,24 +102,24 @@ def login():
 
         if user and check_password_hash(user[2], password):
             session["user"] = username
-            return jsonify({"message": "Login successful"})
+            return jsonify({"success": True, "message": "Login successful"})
         else:
-            return jsonify({"message": "Invalid credentials"})
+            return jsonify({"success": False, "message": "Invalid credentials"})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.pop("user", None)
-    return jsonify({"message": "Logged out"})
+    return jsonify({"success": True, "message": "Logged out"})
 
 # ---------------- SCAN ----------------
 @app.route("/scan")
 def run_scan():
     if "user" not in session:
-        return jsonify({"message": "Unauthorized"}), 401
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     username = session["user"]
     alerts = scan_cloud_config()
@@ -148,13 +148,13 @@ def run_scan():
     conn.commit()
     conn.close()
 
-    return jsonify({"message": "Scan completed"})
+    return jsonify({"success": True, "message": "Scan completed"})
 
 # ---------------- ALERTS ----------------
 @app.route("/alerts")
 def get_alerts():
     if "user" not in session:
-        return jsonify({"message": "Unauthorized"}), 401
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     username = session["user"]
 
@@ -167,6 +167,7 @@ def get_alerts():
     conn.close()
 
     return jsonify({
+        "success": True,
         "alerts": alerts,
         "total": len(alerts)
     })
@@ -185,17 +186,17 @@ def save_cloud():
         data = request.get_json()
 
         if not data:
-            return jsonify({"message": "No data"}), 400
+            return jsonify({"success": False, "message": "No data"}), 400
 
         config_path = os.path.join(BASE_DIR, "config.json")
 
         with open(config_path, "w") as f:
             json.dump(data, f)
 
-        return jsonify({"message": "Cloud connected"})
+        return jsonify({"success": True, "message": "Cloud connected"})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":

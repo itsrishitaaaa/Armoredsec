@@ -140,33 +140,37 @@ opacity:0.9;
 
 <script>
 
+
 async function loginUser(){
 
-const username=document.getElementById("username").value
-const password=document.getElementById("password").value
+const username = document.getElementById("username").value;
+const password = document.getElementById("password").value;
 
-const response=await fetch("/login",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-credentials:"include",
-body:JSON.stringify({
-username:username,
-password:password
-})
-})
+const response = await fetch("/login", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({
+        username: username,
+        password: password
+    })
+});
 
-const data=await response.json()
+const data = await response.json();
 
-if(data.message==="Login Successful"){
-location.href="/dashboard"
+// 🔥 FIXED CONDITION
+if (data.success === true || data.message === "Login Successful") {
+    alert("Login successful");
+
+    // 🔥 REDIRECT FIX
+    window.location.href = "/dashboard";
+} else {
+    alert(data.message || "Login failed");
 }
-else{
-alert(data.message)
 }
 
-}
 
 
 
