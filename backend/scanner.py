@@ -1,12 +1,13 @@
 import boto3
 import os
+from botocore.exceptions import ClientError
 
 
 def scan_cloud_config():
 
     alerts = []
 
-    # 🔥 GET FROM ENV VARIABLES (FINAL FIX)
+    # 🔥 ENV VARIABLES
     access_key = os.getenv("AWS_ACCESS_KEY")
     secret_key = os.getenv("AWS_SECRET_KEY")
     region = os.getenv("AWS_REGION")
@@ -34,45 +35,37 @@ def scan_cloud_config():
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key
     )
+
     # ---------------- S3 BUCKET CHECKS ----------------
 
     try:
-
         buckets = s3.list_buckets()["Buckets"]
 
         for bucket in buckets:
-
             name = bucket["Name"]
 
-            # -------- PUBLIC BUCKET CHECK --------
-
+            # -------- PUBLIC BUCKET CHECK (FIXED) --------
             try:
+                policy = s3.get_bucket_policy(Bucket=name)
+                policy_str = policy["Policy"]
 
-                status = s3.get_bucket_policy_status(Bucket=name)
-
-                if status["PolicyStatus"]["IsPublic"]:
-
+                if '"Principal":"*"' in policy_str or '"Principal": "*"' in policy_str:
                     alerts.append((
                         f"Public S3 Bucket: {name}",
                         "High",
                         "Disable public bucket access"
                     ))
-
-            except:
+            except ClientError:
                 pass
 
             # -------- ENCRYPTION CHECK --------
-
             try:
-
                 s3.get_bucket_encryption(Bucket=name)
 
-            except s3.exceptions.ClientError as e:
-
+            except ClientError as e:
                 error_code = e.response["Error"]["Code"]
 
                 if error_code == "ServerSideEncryptionConfigurationNotFoundError":
-
                     alerts.append((
                         f"S3 Bucket Not Encrypted: {name}",
                         "Medium",
@@ -85,28 +78,22 @@ def scan_cloud_config():
     # ---------------- EC2 SECURITY GROUP CHECK ----------------
 
     try:
-
         groups = ec2.describe_security_groups()["SecurityGroups"]
 
         for group in groups:
-
             group_name = group["GroupName"]
 
-            for perm in group["IpPermissions"]:
+            for perm in group.get("IpPermissions", []):
+                for ip in perm.get("IpRanges", []):
+                    if ip.get("CidrIp") == "0.0.0.0/0":
 
-                if "IpRanges" in perm:
+                        port = perm.get("FromPort", "All")
 
-                    for ip in perm["IpRanges"]:
-
-                        if ip.get("CidrIp") == "0.0.0.0/0":
-
-                            port = perm.get("FromPort", "All")
-
-                            alerts.append((
-                                f"Open EC2 Port {port} in Security Group: {group_name}",
-                                "High",
-                                "Restrict public inbound traffic"
-                            ))
+                        alerts.append((
+                            f"Open EC2 Port {port} in Security Group: {group_name}",
+                            "High",
+                            "Restrict public inbound traffic"
+                        ))
 
     except Exception as e:
         print("EC2 scan error:", e)
@@ -114,11 +101,9 @@ def scan_cloud_config():
     # ---------------- IAM USER CHECK ----------------
 
     try:
-
         users = iam.list_users()["Users"]
 
         if len(users) > 5:
-
             alerts.append((
                 "Too Many IAM Users",
                 "Low",
