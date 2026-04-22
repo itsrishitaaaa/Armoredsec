@@ -2,8 +2,8 @@ from flask import Flask, jsonify, request, session, render_template, redirect
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from database import create_tables, connect_db
-from scanner import scan_cloud_config
+from backend.database import create_tables, connect_db
+from backend.scanner import scan_cloud_config
 
 import os
 import json
